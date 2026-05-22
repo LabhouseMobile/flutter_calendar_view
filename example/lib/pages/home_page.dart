@@ -194,7 +194,7 @@ class _HomePageState extends State<HomePage> {
           color: Colors.deepPurple,
         ),
 
-        // ========== EDGE CASE 11: Monthly recurring event ==========
+        // ========== EDGE CASE 11: Monthly recurring events ==========
         CalendarEventData.timeRanged(
           title: translate.monthlyReviewTitle,
           description: translate.monthlyReviewDesc,
@@ -207,6 +207,19 @@ class _HomePageState extends State<HomePage> {
             occurrences: 6,
           ),
           color: Colors.pink,
+        ),
+
+        CalendarEventData.timeRanged(
+          title: translate.doctorsAppointmentTitle,
+          description: translate.doctorsAppointmentDesc,
+          date: shortDate(_now, 12, 0),
+          endDate: shortDate(_now, 13, 0),
+          recurrenceSettings: RecurrenceSettings.withCalculatedEndDate(
+            startDate: _now,
+            frequency: RepeatFrequency.monthly,
+            recurrenceEndOn: RecurrenceEnd.never,
+          ),
+          color: Colors.lightGreen,
         ),
 
         // ========== EDGE CASE 12: Event with custom styles ==========
@@ -312,6 +325,20 @@ class _HomePageState extends State<HomePage> {
           description: translate.extendedWorkshopDesc,
           date: shortDate(_now.add(const Duration(days: 10)), 9, 0),
           endDate: shortDate(_now.add(const Duration(days: 12)), 8, 0),
+        ),
+
+        CalendarEventData.timeRanged(
+          title: translate.pastDailyScrumTitle,
+          description: translate.pastDailyScrumDesc,
+          date: shortDate(_now.subtract(Duration(days: 10)), 9, 0),
+          endDate: shortDate(_now.subtract(Duration(days: 10)), 9, 15),
+          recurrenceSettings: RecurrenceSettings.withCalculatedEndDate(
+            startDate: _now.subtract(Duration(days: 10)),
+            frequency: RepeatFrequency.daily,
+            recurrenceEndOn: RecurrenceEnd.after,
+            occurrences: 8,
+          ),
+          color: Colors.grey,
         ),
 
         // ========== Additional original events for variety ==========

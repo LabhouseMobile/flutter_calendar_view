@@ -6,6 +6,7 @@
   "dayView": "عرض يومي",
   "weekView": "عرض أسبوعي",
   "multidayView": "عرض متعدد الأيام",
+  "scheduleView": "عرض الجدول الزمني",
   "appTitle": "مثال صفحة تقويم فلاتر",
   "projectMeetingTitle": "اجتماع المشروع",
   "projectMeetingDesc": "اليوم هو اجتماع المشروع.",
@@ -119,5 +120,8 @@
   "lateNightWorkTitle": "عمل متأخر في الليل",
   "lateNightWorkDesc": "اختبار حدود نهاية اليوم",
   "companyRetreatTitle": "رحلة شركة",
-  "companyRetreatDesc": "اختبار حدث متعدد الأيام طوال اليوم"
+  "companyRetreatDesc": "اختبار حدث متعدد الأيام طوال اليوم",
+  "doctorsAppointmentTitle": "موعد مع الطبيب",
+  "doctorsAppointmentDesc": "فحص شهري دوري"
+
 }
