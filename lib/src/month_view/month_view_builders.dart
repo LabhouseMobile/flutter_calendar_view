@@ -35,6 +35,7 @@ class MonthViewBuilders<T extends Object?> {
     this.onEventLongTap,
     this.onEventDoubleTap,
     this.weekDayBuilder,
+    this.weekDaysHeaderBuilder,
     this.onDateLongPress,
     this.onDateLongPressMoveUpdate,
     this.onHeaderTitleTap,
@@ -100,6 +101,19 @@ class MonthViewBuilders<T extends Object?> {
   ///
   /// Here day will range from 0 to 6 starting from Monday to Sunday.
   final WeekDayBuilder? weekDayBuilder;
+
+  /// Builds the entire weekday header row (the row of weekday names above
+  /// the month grid).
+  ///
+  /// When provided, this completely replaces the default row, including the
+  /// per-cell [weekDayBuilder]. Pass [WeekDaysHeader.hidden] to hide the
+  /// row entirely.
+  ///
+  /// The callback receives the list of [DateTime]s for the first week shown
+  /// on the page (one entry per visible column, in display order). Use it to
+  /// derive weekday labels while honoring the configured
+  /// [MonthViewStyle.startDay] and [MonthViewStyle.showWeekends].
+  final WeekDaysHeaderBuilder? weekDaysHeaderBuilder;
 
   /// This method will be called when user long press on calendar.
   final DatePressCallback? onDateLongPress;

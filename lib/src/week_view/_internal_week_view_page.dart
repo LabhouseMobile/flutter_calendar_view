@@ -79,6 +79,13 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
   /// Builder for week number.
   final WeekNumberBuilder weekNumberBuilder;
 
+  /// Optional builder for the entire weekday header row.
+  ///
+  /// When non-null, this replaces the default row built from
+  /// [weekDayBuilder] + [weekNumberBuilder]. Use [WeekDaysHeader.hidden] to
+  /// hide the row entirely.
+  final WeekDaysHeaderBuilder? weekDaysHeaderBuilder;
+
   /// Builds custom PressDetector widget
   final DetectorBuilder weekDetectorBuilder;
 
@@ -231,6 +238,7 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
     required this.weekViewScrollController,
     this.backgroundColor,
     this.timeSlotColorBuilder,
+    this.weekDaysHeaderBuilder,
     this.fullDayHeaderTitle = '',
     this.lastScrollOffset = 0.0,
     this.keepScrollOffset = false,
@@ -382,52 +390,58 @@ class _InternalWeekViewPageState<T extends Object?>
             : VerticalDirection.down,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          SizedBox(
-            width: widget.width,
-            child: ColoredBox(
-              color: widget.weekTitleBackgroundColor ??
-                  themeColor.weekDayTileColor,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: widget.weekTitleHeight,
-                    width: widget.timeLineWidth +
-                        widget.hourIndicatorSettings.offset,
-                    child: widget.weekNumberBuilder.call(filteredDates[0]),
-                  ),
-                  ...List.generate(
-                    filteredDates.length,
-                    (index) => SizedBox(
+          if (widget.weekDaysHeaderBuilder != null)
+            widget.weekDaysHeaderBuilder!(filteredDates)
+          else
+            SizedBox(
+              width: widget.width,
+              child: ColoredBox(
+                color: widget.weekTitleBackgroundColor ??
+                    themeColor.weekDayTileColor,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
                       height: widget.weekTitleHeight,
-                      width: widget.weekTitleWidth,
-                      child: widget.weekDayBuilder(
-                        filteredDates[index],
-                      ),
+                      width: widget.timeLineWidth +
+                          widget.hourIndicatorSettings.offset,
+                      child: widget.weekNumberBuilder.call(filteredDates[0]),
                     ),
-                  )
-                ],
+                    ...List.generate(
+                      filteredDates.length,
+                      (index) => SizedBox(
+                        height: widget.weekTitleHeight,
+                        width: widget.weekTitleWidth,
+                        child: widget.weekDayBuilder(
+                          filteredDates[index],
+                        ),
+                      ),
+                    )
+                  ],
+                ),
               ),
             ),
-          ),
-          Divider(
-            thickness: widget.dividerSettings.thickness,
-            height: widget.dividerSettings.height,
-            color: widget.dividerSettings.color,
-            indent: widget.dividerSettings.indent,
-            endIndent: widget.dividerSettings.endIndent,
-          ),
+          if (widget.weekDaysHeaderBuilder == null)
+            Divider(
+              thickness: widget.dividerSettings.thickness,
+              height: widget.dividerSettings.height,
+              color: widget.dividerSettings.color,
+              indent: widget.dividerSettings.indent,
+              endIndent: widget.dividerSettings.endIndent,
+            ),
           SizedBox(
             width: widget.width,
             child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: themeColor.borderColor,
-                    width: 2,
-                  ),
-                ),
-              ),
+              decoration: widget.weekDaysHeaderBuilder == null
+                  ? BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: themeColor.borderColor,
+                          width: 2,
+                        ),
+                      ),
+                    )
+                  : null,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [

@@ -78,6 +78,25 @@ class DefaultPressDetector extends StatelessWidget {
       );
 }
 
+/// Shortcuts for the weekday-header row used in [WeekView], [MonthView] and
+/// [MultiDayView].
+///
+/// The weekday-header row is the row that displays the weekday names (and,
+/// in week / multi-day views, the date number) just below the page header
+/// and above the calendar grid. It can be fully replaced through each
+/// view's `weekDaysHeaderBuilder` parameter (typedef
+/// [WeekDaysHeaderBuilder]).
+///
+/// Pass [WeekDaysHeader.hidden] as the builder to completely hide the row,
+/// mirroring the existing [MonthHeader.hidden] / [WeekHeader.hidden] pattern
+/// used for the page header.
+class WeekDaysHeader {
+  const WeekDaysHeader._();
+
+  /// Returns an empty widget so the weekday-header row is not rendered.
+  static Widget hidden(List<DateTime> dates) => const SizedBox.shrink();
+}
+
 /// This will be used in day and week view
 class DefaultEventTile<T> extends StatelessWidget {
   const DefaultEventTile({

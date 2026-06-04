@@ -127,6 +127,24 @@ class WeekView<T extends Object?> extends StatefulWidget {
   /// Builder to build week number.
   final WeekNumberBuilder? weekNumberBuilder;
 
+  /// Builder for the entire weekday header row (the row that shows weekday
+  /// name and date number, sitting just below the page header).
+  ///
+  /// When provided, this completely replaces the default row, including the
+  /// [weekDayBuilder] and [weekNumberBuilder] cells. Pass
+  /// [WeekDaysHeader.hidden] to hide the row entirely.
+  ///
+  /// The callback receives the list of [DateTime]s currently visible on the
+  /// page (after filtering by [weekDays] and [showWeekends]).
+  ///
+  /// When this builder is non-null the package also drops the two visual
+  /// separators that belong to the default weekday-header area — the
+  /// [dividerSettings] divider, and the 2px bottom border on the full-day
+  /// events row. The caller's builder takes full responsibility for the top
+  /// edge of the calendar; add your own divider inside the returned widget
+  /// if you need one.
+  final WeekDaysHeaderBuilder? weekDaysHeaderBuilder;
+
   /// Background color of week view page.
   final Color? backgroundColor;
 
@@ -271,6 +289,7 @@ class WeekView<T extends Object?> extends StatefulWidget {
     this.weekTitleBackgroundColor,
     this.weekDayBuilder,
     this.weekNumberBuilder,
+    this.weekDaysHeaderBuilder,
     this.backgroundColor,
     this.scrollPhysics,
     this.scrollOffset = 0.0,
@@ -668,6 +687,7 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
                               widget.weekTitleBackgroundColor,
                           weekDayBuilder: _weekDayBuilder,
                           weekNumberBuilder: _weekNumberBuilder,
+                          weekDaysHeaderBuilder: widget.weekDaysHeaderBuilder,
                           weekDetectorBuilder: _weekDetectorBuilder,
                           liveTimeIndicatorSettings: _liveTimeIndicatorSettings,
                           timeLineBuilder: _timeLineBuilder,

@@ -48,6 +48,23 @@ typedef WeekDayBuilder = Widget Function(
   int day,
 );
 
+/// Builder for the entire weekday header row that sits between the page
+/// header and the calendar grid.
+///
+/// In [WeekView] and [MultiDayView] this row shows the weekday name and the
+/// date number for each visible day. In [MonthView] this row shows only the
+/// weekday name (the date numbers live inside each cell).
+///
+/// When provided, the returned widget completely replaces the default row,
+/// including the [WeekDayBuilder] / [DateWidgetBuilder] and
+/// [WeekNumberBuilder] cells the views render by default. Return
+/// [SizedBox.shrink] (or use [WeekDaysHeader.hidden]) to hide the row.
+///
+/// Note: this is independent from [WeekPageHeaderBuilder] /
+/// [MonthPageHeader], which controls the page title / navigation bar above
+/// this row.
+typedef WeekDaysHeaderBuilder = Widget Function(List<DateTime> dates);
+
 typedef DateWidgetBuilder = Widget Function(DateTime date);
 
 typedef HeaderTitleCallback = Future<void> Function(DateTime date);

@@ -85,6 +85,13 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
   /// Builder for week number.
   final WeekNumberBuilder weekNumberBuilder;
 
+  /// Optional builder for the entire weekday header row.
+  ///
+  /// When non-null, this replaces the default row built from
+  /// [weekDayBuilder] + [weekNumberBuilder]. Use [WeekDaysHeader.hidden] to
+  /// hide the row entirely.
+  final WeekDaysHeaderBuilder? weekDaysHeaderBuilder;
+
   /// Builds custom PressDetector widget
   final DetectorBuilder weekDetectorBuilder;
 
@@ -225,7 +232,8 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
       required this.multiDayViewScrollController,
       this.lastScrollOffset = 0.0,
       this.keepScrollOffset = false,
-      this.showMutliDayBottomLine = true})
+      this.showMutliDayBottomLine = true,
+      this.weekDaysHeaderBuilder})
       : super(key: key);
 
   @override
@@ -288,34 +296,38 @@ class _InternalMultiDayViewPageState<T extends Object?>
             : VerticalDirection.down,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          ColoredBox(
-            color: themeColor.headerBackgroundColor,
-            child: SizedBox(
-              width: widget.width,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: widget.weekTitleHeight,
-                    width: widget.timeLineWidth +
-                        widget.hourIndicatorSettings.offset,
-                    child: widget.weekNumberBuilder.call(filteredDates[0]),
-                  ),
-                  ...List.generate(
-                    filteredDates.length,
-                    (index) => SizedBox(
+          if (widget.weekDaysHeaderBuilder != null)
+            widget.weekDaysHeaderBuilder!(filteredDates)
+          else
+            ColoredBox(
+              color: themeColor.headerBackgroundColor,
+              child: SizedBox(
+                width: widget.width,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
                       height: widget.weekTitleHeight,
-                      width: widget.weekTitleWidth,
-                      child: widget.weekDayBuilder(
-                        filteredDates[index],
-                      ),
+                      width: widget.timeLineWidth +
+                          widget.hourIndicatorSettings.offset,
+                      child: widget.weekNumberBuilder.call(filteredDates[0]),
                     ),
-                  )
-                ],
+                    ...List.generate(
+                      filteredDates.length,
+                      (index) => SizedBox(
+                        height: widget.weekTitleHeight,
+                        width: widget.weekTitleWidth,
+                        child: widget.weekDayBuilder(
+                          filteredDates[index],
+                        ),
+                      ),
+                    )
+                  ],
+                ),
               ),
             ),
-          ),
-          if (widget.showMutliDayBottomLine)
+          if (widget.showMutliDayBottomLine &&
+              widget.weekDaysHeaderBuilder == null)
             Divider(
               thickness: widget.dividerSettings.thickness,
               height: widget.dividerSettings.height,
@@ -326,14 +338,16 @@ class _InternalMultiDayViewPageState<T extends Object?>
           SizedBox(
             width: widget.width,
             child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: themeColor.borderColor,
-                    width: 2,
-                  ),
-                ),
-              ),
+              decoration: widget.weekDaysHeaderBuilder == null
+                  ? BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: themeColor.borderColor,
+                          width: 2,
+                        ),
+                      ),
+                    )
+                  : null,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [

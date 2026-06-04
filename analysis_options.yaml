@@ -1,7 +1,8 @@
-include: 'package:lints/core.yaml'
+include: "package:lints/core.yaml"
 
 analyzer:
   exclude:
+    - example/**
     - example/build/**
     - exmaple/android/**
     - example/ios/**

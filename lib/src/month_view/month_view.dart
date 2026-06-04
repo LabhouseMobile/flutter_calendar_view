@@ -296,21 +296,24 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        width: _width,
-                        child: Row(
-                          children: List.generate(
-                            _monthViewStyle.showWeekends ? 7 : 5,
-                            (index) => Expanded(
-                              child: SizedBox(
-                                width: _cellWidth,
-                                child:
-                                    _weekBuilder(weekDays[index].weekday - 1),
+                      if (_monthViewBuilders.weekDaysHeaderBuilder != null)
+                        _monthViewBuilders.weekDaysHeaderBuilder!(weekDays)
+                      else
+                        SizedBox(
+                          width: _width,
+                          child: Row(
+                            children: List.generate(
+                              _monthViewStyle.showWeekends ? 7 : 5,
+                              (index) => Expanded(
+                                child: SizedBox(
+                                  width: _cellWidth,
+                                  child:
+                                      _weekBuilder(weekDays[index].weekday - 1),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
                       Expanded(
                         child: LayoutBuilder(
                           builder: (context, constraints) {
