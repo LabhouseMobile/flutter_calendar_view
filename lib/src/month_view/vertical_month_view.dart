@@ -82,6 +82,15 @@ class VerticalMonthViewState<T extends Object?>
   int _totalMonths = 0;
   bool _isMultiDateSelectionInProgress = false;
 
+  /// True while a programmatic jump is being applied, so [_onScroll] does not
+  /// overwrite the target month with the intermediate visible index.
+  bool _suppressScrollUpdates = false;
+
+  /// Alignment of the most recent programmatic jump (0 = target pinned to the
+  /// top of the viewport, 0.5 = centered, 1 = pinned to the bottom). Remembered
+  /// so re-syncs triggered by rebuilds keep the same framing.
+  double _lastSyncAlignment = 0;
+
   late ScrollController _scrollController;
   late ListController _listController;
 
@@ -97,6 +106,7 @@ class VerticalMonthViewState<T extends Object?>
   late double _width;
   late double _cellWidth;
   late double _cellHeight;
+  late double _estimatedMonthExtent;
 
   DateTime? _selectedDate;
   late CellBuilder<T> _cellBuilder;
@@ -225,16 +235,24 @@ class VerticalMonthViewState<T extends Object?>
               child: Stack(
                 key: _viewportKey,
                 children: [
-                  SuperListView.builder(
-                    listController: _listController,
-                    controller: _scrollController,
-                    padding: EdgeInsets.zero,
-                    physics: _isMultiDateSelectionInProgress
-                        ? const NeverScrollableScrollPhysics()
-                        : (_monthViewStyle.pageViewPhysics ??
-                            const ClampingScrollPhysics()),
-                    itemCount: _totalMonths,
-                    itemBuilder: (context, index) => _buildMonthBlock(index),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SuperListView.builder(
+                        listController: _listController,
+                        controller: _scrollController,
+                        extentEstimation: (_, __) => _estimatedMonthExtent,
+                        padding: EdgeInsets.only(
+                          bottom: _trailingExtent(constraints.maxHeight),
+                        ),
+                        physics: _isMultiDateSelectionInProgress
+                            ? const NeverScrollableScrollPhysics()
+                            : (_monthViewStyle.pageViewPhysics ??
+                                const ClampingScrollPhysics()),
+                        itemCount: _totalMonths,
+                        itemBuilder: (context, index) =>
+                            _buildMonthBlock(index),
+                      );
+                    },
                   ),
                   if (widget.stickyMonthHeaders)
                     Positioned(
@@ -389,54 +407,74 @@ class VerticalMonthViewState<T extends Object?>
   }
 
   /// Jump (without animation) to month at [page] index.
-  void jumpToPage(int page) {
+  ///
+  /// [alignment] controls where the target month is positioned within the
+  /// viewport: `0` pins it to the top, `0.5` centers it, `1` pins it to the
+  /// bottom.
+  void jumpToPage(int page, {double alignment = 0}) {
     final normalizedPage = page.clamp(0, _totalMonths - 1);
     _updateCurrentPage(normalizedPage);
-    if (!_listController.isAttached || !_scrollController.hasClients) {
-      _scheduleScrollSyncToCurrentIndex();
-      return;
-    }
-    _listController.jumpToItem(
-      index: normalizedPage,
-      scrollController: _scrollController,
-      alignment: 0,
-    );
+    _scrollToIndex(normalizedPage, alignment: alignment);
   }
 
   /// Animate to month at [page] index.
+  ///
+  /// See [jumpToPage] for the meaning of [alignment].
   Future<void> animateToPage(
     int page, {
     Duration? duration,
     Curve? curve,
+    double alignment = 0,
   }) async {
     final normalizedPage = page.clamp(0, _totalMonths - 1);
+    _lastSyncAlignment = alignment;
     if (!_listController.isAttached || !_scrollController.hasClients) {
       _updateCurrentPage(normalizedPage);
       _scheduleScrollSyncToCurrentIndex();
       return;
     }
+    _updateCurrentPage(normalizedPage);
     _listController.animateToItem(
       index: normalizedPage,
       scrollController: _scrollController,
-      alignment: 0,
+      alignment: alignment,
       duration: (_) => duration ?? _monthViewStyle.pageTransitionDuration,
       curve: (_) => curve ?? _monthViewStyle.pageTransitionCurve,
     );
   }
 
   /// Jump (without animation) to the given [month].
-  void jumpToMonth(DateTime month) {
+  ///
+  /// By default the target month is centered in the viewport. Pass [alignment]
+  /// to override (`0` = top, `0.5` = center, `1` = bottom).
+  void jumpToMonth(DateTime month, {double alignment = 0.5}) {
     if (month.isBefore(_minDate) || month.isAfter(_maxDate)) {
       throw "Invalid date selected.";
     }
-    jumpToPage(_minDate.getMonthDifference(month) - 1);
+    jumpToPage(_minDate.getMonthDifference(month) - 1, alignment: alignment);
+  }
+
+  /// Jump (without animation) to the current month, centered in the viewport.
+  ///
+  /// The current month is clamped into the configured `[minMonth, maxMonth]`
+  /// range, so this is safe to call even when today falls outside the range.
+  void jumpToToday({double alignment = 0.5}) {
+    final today = DateTime.now().withoutTime;
+    final clamped = today.isBefore(_minDate)
+        ? _minDate
+        : (today.isAfter(_maxDate) ? _maxDate : today);
+    jumpToMonth(clamped, alignment: alignment);
   }
 
   /// Animate to the given [month].
+  ///
+  /// By default the target month is centered in the viewport. Pass [alignment]
+  /// to override (`0` = top, `0.5` = center, `1` = bottom).
   Future<void> animateToMonth(
     DateTime month, {
     Duration? duration,
     Curve? curve,
+    double alignment = 0.5,
   }) async {
     if (month.isBefore(_minDate) || month.isAfter(_maxDate)) {
       throw "Invalid date selected.";
@@ -445,11 +483,12 @@ class VerticalMonthViewState<T extends Object?>
       _minDate.getMonthDifference(month) - 1,
       duration: duration,
       curve: curve,
+      alignment: alignment,
     );
   }
 
   void _onScroll() {
-    if (!_listController.isAttached) return;
+    if (_suppressScrollUpdates || !_listController.isAttached) return;
     final visible = _listController.visibleRange;
     if (visible == null) return;
     _updateCurrentPage(visible.$1.clamp(0, _totalMonths - 1));
@@ -470,17 +509,45 @@ class VerticalMonthViewState<T extends Object?>
   }
 
   void _scheduleScrollSyncToCurrentIndex() {
+    _scrollToIndex(
+      _currentIndex.clamp(0, _totalMonths - 1),
+      alignment: _lastSyncAlignment,
+    );
+  }
+
+  /// Positions the list so the month at [index] sits at [alignment] within the
+  /// viewport (0 = top, 0.5 = center, 1 = bottom).
+  ///
+  /// `jumpToItem` already self-corrects across layout passes, so a single call
+  /// is enough; if the list is not attached yet (e.g. during the first build),
+  /// the jump is deferred to the next frame.
+  void _scrollToIndex(int index, {double alignment = 0}) {
+    final target = index.clamp(0, _totalMonths - 1);
+    _lastSyncAlignment = alignment;
+
+    if (_listController.isAttached && _scrollController.hasClients) {
+      _applyJump(target, alignment);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !_listController.isAttached ||
+            !_scrollController.hasClients) {
+          return;
+        }
+        _applyJump(target.clamp(0, _totalMonths - 1), alignment);
+      });
+    }
+  }
+
+  void _applyJump(int target, double alignment) {
+    _suppressScrollUpdates = true;
+    _listController.jumpToItem(
+      index: target,
+      scrollController: _scrollController,
+      alignment: alignment,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted ||
-          !_listController.isAttached ||
-          !_scrollController.hasClients) {
-        return;
-      }
-      _listController.jumpToItem(
-        index: _currentIndex.clamp(0, _totalMonths - 1),
-        scrollController: _scrollController,
-        alignment: 0,
-      );
+      _suppressScrollUpdates = false;
     });
   }
 
@@ -510,6 +577,7 @@ class VerticalMonthViewState<T extends Object?>
     final columnCount = _monthViewStyle.showWeekends ? 7 : 5;
     _cellWidth = _width / columnCount;
     _cellHeight = _cellWidth / _monthViewStyle.cellAspectRatio;
+    _estimatedMonthExtent = widget.stickyMonthHeaderHeight + (_cellHeight * 6);
   }
 
   double _monthGridHeight(int index) {
@@ -522,6 +590,22 @@ class VerticalMonthViewState<T extends Object?>
     final columnCount = _monthViewStyle.showWeekends ? 7 : 5;
     final rows = (dates.length / columnCount).ceil();
     return _cellHeight * rows;
+  }
+
+  /// Trailing space appended below the last month so that any month - including
+  /// the last - can be scrolled all the way to the top of the viewport.
+  ///
+  /// Without it the final month(s) can never reach the top (there is no content
+  /// below them to push them up), so a jump to a late month leaves an earlier
+  /// month pinned at the top. The padding is just large enough to bring the last
+  /// month to the top; the separator (whose height is unknown here) only makes
+  /// the last block taller, which can only reduce the space actually needed, so
+  /// this estimate is always sufficient.
+  double _trailingExtent(double viewportHeight) {
+    if (!viewportHeight.isFinite || viewportHeight <= 0) return 0;
+    final lastBlockHeight =
+        _monthGridHeight(_totalMonths - 1) + widget.stickyMonthHeaderHeight;
+    return (viewportHeight - lastBlockHeight).clamp(0.0, viewportHeight);
   }
 
   void _assignBuilders() {
